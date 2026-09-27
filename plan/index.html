@@ -74,7 +74,7 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--focus); out
 </form>
 <script>
 (() => {
-  const P = {"iter":600000,"salt":"zmSQOkW5Qo7qYiVlQtYyhA==","iv":"la7hGX6b44XCR4Xd","file":"data-b7e6be640868.bin","size":13714};
+  const P = {"iter":600000,"salt":"zmSQOkW5Qo7qYiVlQtYyhA==","iv":"8wQcPZGmXQgYWt7z","file":"data-9ffecde68446.bin","size":14249};
   const SAVED = 'preview-key:' + P.salt;
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const $ = (id) => document.getElementById(id);
@@ -106,9 +106,11 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--focus); out
     document.write(html);
     document.close();
   }
+  // The key is kept for this tab (sessionStorage), so the other team pages open without the password again;
+  // "remember" keeps it on the device (localStorage).
   async function fromSaved() {
     let saved = null;
-    try { saved = localStorage.getItem(SAVED); } catch { return; }
+    try { saved = localStorage.getItem(SAVED) || sessionStorage.getItem(SAVED); } catch { return; }
     if (!saved) return;
     say('正在打开…');
     let bin;
@@ -118,7 +120,7 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--focus); out
       show(await decrypt(key, bin));
     } catch {
       say('');
-      try { localStorage.removeItem(SAVED); } catch { /* storage unavailable */ }
+      try { localStorage.removeItem(SAVED); sessionStorage.removeItem(SAVED); } catch { /* storage unavailable */ }
     }
   }
   $('lock').addEventListener('submit', async (event) => {
@@ -143,12 +145,11 @@ input:focus-visible, button:focus-visible { outline: 2px solid var(--focus); out
       $('pw').select();
       return;
     }
-    if ($('remember').checked) {
-      try {
-        const raw = new Uint8Array(await crypto.subtle.exportKey('raw', key));
-        localStorage.setItem(SAVED, btoa(String.fromCharCode(...raw)));
-      } catch { /* not remembered; the page still opens */ }
-    }
+    try {
+      const raw = btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.exportKey('raw', key))));
+      sessionStorage.setItem(SAVED, raw);
+      if ($('remember').checked) localStorage.setItem(SAVED, raw);
+    } catch { /* not kept; the page still opens */ }
     show(html);
   });
   fromSaved();
